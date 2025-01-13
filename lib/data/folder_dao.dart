@@ -20,6 +20,8 @@ class FolderDao {
     final db = await DBProvider.instance.database;
     return await db.delete('Folder', where: 'folderId = ?', whereArgs: [folderId]);
   }
+
+  getFolderNameById(int folderId) {}
   
   // 必要に応じてupdateFolderなども追加
 }

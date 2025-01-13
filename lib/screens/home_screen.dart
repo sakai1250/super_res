@@ -65,9 +65,53 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     );
   }
 
+  // ギャラリーから選択する
+  Future<void> _pickFromGallery() async {
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+    if (pickedFile == null) return;
+
+    final appDir = await getApplicationDocumentsDirectory();
+    final fileName = p.basename(pickedFile.path);
+    final savedImage = await File(pickedFile.path).copy('${appDir.path}/$fileName');
+
+    final folderId = await _showFolderSelectionDialog();
+    if (folderId == null) {
+      return; 
+    }
+
+    final newMemo = Memo(
+      title: "Gallery Memo",
+      imagePath: savedImage.path,
+      createdAt: DateTime.now().toString(),
+      folderId: folderId,
+    );
+    await _memoDao.insertMemo(newMemo);
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('ギャラリーからの写真をフォルダID=$folderId に保存しました')),
+    );
+  }
+
+
   Future<int?> _showFolderSelectionDialog() async {
     final folderDao = FolderDao();
     final allFolders = await folderDao.getAllFolders();
+    if (allFolders.isEmpty) {
+      return showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: Text('No Folders Found'),
+          content: Text('Please create a folder before adding a memo.'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: Text('OK'),
+            ),
+          ],
+        ),
+      ).then((_) => null); // nullを返す
+    }
 
     int? selectedFolderId;
 
@@ -157,13 +201,28 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
             Tab(text: 'Folder'),
           ],
         ),
-        actions: [
-          // どのタブでも右上にカメラアイコンを表示したい場合
-          IconButton(
-            icon: Icon(Icons.camera_alt),
-            onPressed: _onCameraPressed,
-          )
-        ],
+      actions: [
+        PopupMenuButton<String>(
+          icon: Icon(Icons.add),
+          onSelected: (value) async {
+            if (value == 'gallery') {
+              await _pickFromGallery();
+            } else if (value == 'camera') {
+              await _onCameraPressed();
+            }
+          },
+          itemBuilder: (context) => [
+            PopupMenuItem(
+              value: 'gallery',
+              child: Text('フォルダから選択'),
+            ),
+            PopupMenuItem(
+              value: 'camera',
+              child: Text('写真を撮影'),
+            ),
+          ],
+        ),
+      ],
       ),
       // タブの中身
       body: TabBarView(

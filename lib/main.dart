@@ -15,7 +15,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Memo App',
       theme: ThemeData(primarySwatch: Colors.blue),
-      home: HomeScreen(),    // ここにカメラアイコンのある画面を指定
+      home: HomeScreen(),
       // routes定義 (main.dartなど)
       routes: {
         '/photoList': (context) {
