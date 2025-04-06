@@ -1,0 +1,2 @@
+/Users/sakaitaigoware/super_res/android/app/.cxx/RelWithDebInfo/5v2i233l/arm64-v8a/CMakeFiles/edit_cache.dir
+/Users/sakaitaigoware/super_res/android/app/.cxx/RelWithDebInfo/5v2i233l/arm64-v8a/CMakeFiles/rebuild_cache.dir

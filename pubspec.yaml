@@ -33,7 +33,7 @@ dependencies:
   sqflite: ^2.2.5
   path_provider: ^2.0.14
   image_picker: ^0.8.7
-  flutter_super_resolution: ^1.0.0 # 超解像ライブラリ
+  flutter_super_resolution: ^1.0.5 # 超解像ライブラリ
   image: ^4.0.17 # Imageライブラリ（補間処理用）
 
   # The following adds the Cupertino Icons font to your application.
@@ -68,6 +68,9 @@ flutter:
   #   - images/a_dot_ham.jpeg
   assets:
     - assets/rt4ksr_x2.onnx
+    - assets/RRDB_ESRGAN_x4.onnx
+    - assets/IMDN.onnx
+
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
