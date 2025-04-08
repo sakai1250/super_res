@@ -10,7 +10,7 @@ class FolderDao {
 
   Future<List<Folder>> getAllFolders() async {
     final db = await DBProvider.instance.database;
-    final res = await db.query('Folder');
+    final res = await db.query('Folder', orderBy: 'folderId DESC');
     return res.isNotEmpty
         ? res.map((f) => Folder.fromMap(f)).toList()
         : [];
@@ -20,8 +20,5 @@ class FolderDao {
     final db = await DBProvider.instance.database;
     return await db.delete('Folder', where: 'folderId = ?', whereArgs: [folderId]);
   }
-
-  getFolderNameById(int folderId) {}
-  
-  // 必要に応じてupdateFolderなども追加
 }
+

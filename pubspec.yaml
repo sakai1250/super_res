@@ -68,7 +68,7 @@ flutter:
   #   - images/a_dot_ham.jpeg
   assets:
     - assets/rt4ksr_x2.onnx
-    - assets/RRDB_ESRGAN_x4.onnx
+    # - assets/RRDB_ESRGAN_x4.onnx
     - assets/IMDN.onnx
 
 

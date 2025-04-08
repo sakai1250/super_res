@@ -24,13 +24,13 @@ class DBProvider {
     String path = join(documentsDirectory.path, "memo_app.db");
 
     // DEBUGビルドなら古いDBファイルを消す
-    assert(() {
-      final dbFile = File(path);
-      if (dbFile.existsSync()) {
-        dbFile.deleteSync();
-      }
-      return true;
-    }());
+    // assert(() {
+    //   final dbFile = File(path);
+    //   if (dbFile.existsSync()) {
+    //     dbFile.deleteSync();
+    //   }
+    //   return true;
+    // }());
 
     return await openDatabase(
       path,

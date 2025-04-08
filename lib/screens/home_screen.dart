@@ -19,140 +19,26 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateMixin {
   late TabController _tabController;
   final MemoDao _memoDao = MemoDao();
+  final FolderDao _folderDao = FolderDao();
+  List<Folder> _folderList = [];
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    _loadFolders();
   }
 
-  @override
-  void dispose() {
-    _tabController.dispose();
-    super.dispose();
-  }
-
-  /// カメラを起動してメモを作成
-  Future<void> _onCameraPressed() async {
-    final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(source: ImageSource.camera);
-    if (pickedFile == null) return;
-
-    // 画像をアプリ専用ディレクトリに保存
-    final appDir = await getApplicationDocumentsDirectory();
-    final fileName = p.basename(pickedFile.path);
-    final savedImage = await File(pickedFile.path).copy('${appDir.path}/$fileName');
-
-    // フォルダを選択するダイアログを表示し、ユーザーが選んだfolderIdを受け取る
-    final folderId = await _showFolderSelectionDialog();
-    if (folderId == null) {
-      // ユーザーがキャンセルした場合の処理（必要なら）
-      return;
+  Future<void> _loadFolders() async {
+    final folders = await _folderDao.getAllFolders();
+    if (mounted) {
+      setState(() {
+        _folderList = folders;
+      });
     }
-
-    // DBにMemoをINSERT
-    final newMemo = Memo(
-      title: "Camera Memo",
-      imagePath: savedImage.path,
-      createdAt: DateTime.now().toString(),
-      folderId: folderId,
-    );
-    await _memoDao.insertMemo(newMemo);
-
-    // ユーザーに成功メッセージなどを表示
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('写真をフォルダID=$folderId に保存しました')),
-    );
   }
 
-  // ギャラリーから選択する
-  Future<void> _pickFromGallery() async {
-    final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
-    if (pickedFile == null) return;
-
-    final appDir = await getApplicationDocumentsDirectory();
-    final fileName = p.basename(pickedFile.path);
-    final savedImage = await File(pickedFile.path).copy('${appDir.path}/$fileName');
-
-    final folderId = await _showFolderSelectionDialog();
-    if (folderId == null) {
-      return; 
-    }
-
-    final newMemo = Memo(
-      title: "Gallery Memo",
-      imagePath: savedImage.path,
-      createdAt: DateTime.now().toString(),
-      folderId: folderId,
-    );
-    await _memoDao.insertMemo(newMemo);
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('ギャラリーからの写真をフォルダID=$folderId に保存しました')),
-    );
-  }
-
-
-  Future<int?> _showFolderSelectionDialog() async {
-    final folderDao = FolderDao();
-    final allFolders = await folderDao.getAllFolders();
-    if (allFolders.isEmpty) {
-      return showDialog(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          title: Text('No Folders Found'),
-          content: Text('Please create a folder before adding a memo.'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(ctx).pop(),
-              child: Text('OK'),
-            ),
-          ],
-        ),
-      ).then((_) => null); // nullを返す
-    }
-
-    int? selectedFolderId;
-
-    await showDialog(
-      context: context,
-      builder: (ctx) {
-        return AlertDialog(
-          title: Text('Select Folder'),
-          content: SingleChildScrollView(
-            child: Column(
-              children: allFolders.map((folder) {
-                return ListTile(
-                  title: Text(folder.folderName),
-                  onTap: () {
-                    selectedFolderId = folder.folderId;
-                    Navigator.of(ctx).pop(); // ダイアログを閉じる
-                  },
-                );
-              }).toList(),
-            ),
-          ),
-          actions: [
-            TextButton(
-              child: Text('Cancel'),
-              onPressed: () {
-                selectedFolderId = null; // キャンセル
-                Navigator.of(ctx).pop();
-              },
-            ),
-          ],
-        );
-      },
-    );
-
-    return selectedFolderId;
-  }
-
-
-  /// フォルダ作成の処理
   Future<void> _onFolderAction() async {
-    final folderDao = FolderDao();
     TextEditingController controller = TextEditingController();
 
     await showDialog(
@@ -172,14 +58,15 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
             TextButton(
               child: Text('OK'),
               onPressed: () async {
-                final folderName = controller.text.trim();
-                if (folderName.isNotEmpty) {
-                  await folderDao.insertFolder(Folder(folderName: folderName));
+                final name = controller.text.trim();
+                if (name.isNotEmpty) {
+                  await _folderDao.insertFolder(Folder(folderName: name));
+                  await _loadFolders();
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Folder "$folderName" created')),
+                    SnackBar(content: Text('Folder "$name" created')),
                   );
                 }
-                Navigator.of(ctx).pop();
+                if (context.mounted) Navigator.of(ctx).pop();
               },
             ),
           ],
@@ -188,10 +75,114 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     );
   }
 
+  Future<void> _pickFromGallery() async {
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+    if (pickedFile == null) return;
+
+    final appDir = await getApplicationDocumentsDirectory();
+    final fileName = p.basename(pickedFile.path);
+    final savedImage = await File(pickedFile.path).copy('${appDir.path}/$fileName');
+
+    final folderId = await _showFolderSelectionDialog();
+    if (folderId == null) return;
+
+    final newMemo = Memo(
+      title: "Gallery Memo",
+      imagePath: savedImage.path,
+      createdAt: DateTime.now().toString(),
+      folderId: folderId,
+    );
+    await _memoDao.insertMemo(newMemo);
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('ギャラリーからの写真をフォルダID=$folderId に保存しました')),
+    );
+  }
+
+  Future<void> _onCameraPressed() async {
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(source: ImageSource.camera);
+    if (pickedFile == null) return;
+
+    final appDir = await getApplicationDocumentsDirectory();
+    final fileName = p.basename(pickedFile.path);
+    final savedImage = await File(pickedFile.path).copy('${appDir.path}/$fileName');
+
+    final folderId = await _showFolderSelectionDialog();
+    if (folderId == null) return;
+
+    final newMemo = Memo(
+      title: "Camera Memo",
+      imagePath: savedImage.path,
+      createdAt: DateTime.now().toString(),
+      folderId: folderId,
+    );
+    await _memoDao.insertMemo(newMemo);
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('写真をフォルダID=$folderId に保存しました')),
+    );
+  }
+
+  Future<int?> _showFolderSelectionDialog() async {
+    final allFolders = await _folderDao.getAllFolders();
+    if (allFolders.isEmpty) {
+      await showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: Text('No Folders Found'),
+          content: Text('Please create a folder before adding a memo.'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: Text('OK'),
+            ),
+          ],
+        ),
+      );
+      return null;
+    }
+
+    int? selectedFolderId;
+
+    await showDialog(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          title: Text('Select Folder'),
+          content: SingleChildScrollView(
+            child: Column(
+              children: allFolders.map((folder) {
+                return ListTile(
+                  title: Text(folder.folderName),
+                  onTap: () {
+                    selectedFolderId = folder.folderId;
+                    Navigator.of(ctx).pop();
+                  },
+                );
+              }).toList(),
+            ),
+          ),
+          actions: [
+            TextButton(
+              child: Text('Cancel'),
+              onPressed: () {
+                selectedFolderId = null;
+                Navigator.of(ctx).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
+
+    return selectedFolderId;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // AppBar: タブとカメラアイコン
       appBar: AppBar(
         title: Text('My App'),
         bottom: TabBar(
@@ -201,39 +192,27 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
             Tab(text: 'Folder'),
           ],
         ),
-      actions: [
-        PopupMenuButton<String>(
-          icon: Icon(Icons.add),
-          onSelected: (value) async {
-            if (value == 'gallery') {
-              await _pickFromGallery();
-            } else if (value == 'camera') {
-              await _onCameraPressed();
-            }
-          },
-          itemBuilder: (context) => [
-            PopupMenuItem(
-              value: 'gallery',
-              child: Text('フォルダから選択'),
-            ),
-            PopupMenuItem(
-              value: 'camera',
-              child: Text('写真を撮影'),
-            ),
-          ],
-        ),
-      ],
+        actions: [
+          PopupMenuButton<String>(
+            icon: Icon(Icons.add),
+            onSelected: (value) async {
+              if (value == 'gallery') await _pickFromGallery();
+              else if (value == 'camera') await _onCameraPressed();
+            },
+            itemBuilder: (context) => [
+              PopupMenuItem(value: 'gallery', child: Text('フォルダから選択')),
+              PopupMenuItem(value: 'camera', child: Text('写真を撮影')),
+            ],
+          ),
+        ],
       ),
-      // タブの中身
       body: TabBarView(
         controller: _tabController,
         children: [
           MemoListScreen(),
-          FolderListScreen(),
+          FolderListScreen(folderList: _folderList), // ← これが超重要！
         ],
       ),
-
-      // 右下のFloatingActionButtonはフォルダ作成専用にする
       floatingActionButton: FloatingActionButton(
         child: Icon(Icons.create_new_folder),
         onPressed: _onFolderAction,

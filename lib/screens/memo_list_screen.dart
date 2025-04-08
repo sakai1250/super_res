@@ -4,6 +4,7 @@ import '../data/memo_dao.dart';
 import '../data/memo.dart';
 import '../data/folder_dao.dart';
 import '../data/db_provider.dart';
+import '../screens/photo_detail_screen.dart';
 
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
@@ -62,18 +63,55 @@ class _MemoListScreenState extends State<MemoListScreen> {
         itemCount: _memoList.length,
         itemBuilder: (context, index) {
           final memo = _memoList[index];
-          return GestureDetector(
-            onTap: () {
-              // ここで詳細画面などへ
-            },
-            child: ListTile(
-              title: Text(memo.title),
-              subtitle: memo.imagePath != null
-                  ? Image.file(File(memo.imagePath!))
-                  : Text('No Image'),
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            child: Card(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              elevation: 4,
+              child: ListTile(
+                contentPadding: EdgeInsets.all(12),
+                leading: memo.imagePath != null
+                    ? GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => PhotoDetailScreen(
+                                imagePath: memo.imagePath!,
+                                memo: memo,
+                              ),
+                            ),
+                          );
+                        },
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: Image.file(
+                            File(memo.imagePath!),
+                            width: 64,
+                            height: 64,
+                            fit: BoxFit.cover,
+                          ),
+                        ),
+                      )
+                    : Icon(Icons.image_not_supported, size: 48),
+                title: Text(
+                  memo.title,
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                ),
+                subtitle: Text(
+                  memo.textContent ?? '（メモなし）',
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
             ),
           );
         },
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _onCameraPressed,
+        child: Icon(Icons.camera_alt),
+        backgroundColor: Colors.blue,
       ),
     );
   }

@@ -1,15 +1,13 @@
-// photo_detail_screen.dart
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:super_res/data/memo.dart';
 import 'super_resolution_screen.dart';
-import '../data/memo.dart';
 import '../data/memo_dao.dart';
 
 class PhotoDetailScreen extends StatefulWidget {
-  final String imagePath; // 表示する画像のパス
-  final Memo memo; // メモ
+  final String imagePath;
+  final Memo memo;
 
   PhotoDetailScreen({required this.imagePath, required this.memo});
 
@@ -20,43 +18,37 @@ class PhotoDetailScreen extends StatefulWidget {
 class _PhotoDetailScreenState extends State<PhotoDetailScreen> {
   final MemoDao _memoDao = MemoDao();
   late TextEditingController _textController;
-  late File _displayedImage; // 表示する画像ファイル
-  // final TextEditingController _noteController = TextEditingController(); // メモ入力用
+  late File _displayedImage;
 
   @override
   void initState() {
     super.initState();
-    // 初期値が null なら "未入力" をセット
     final initialText = widget.memo.textContent?.isNotEmpty == true
         ? widget.memo.textContent!
         : "未入力";
     _textController = TextEditingController(text: initialText);
-    _displayedImage = File(widget.imagePath); // 初期表示の画像をセット
-  }
-
-  void _updateImage(Uint8List upscaledImage) {
-    setState(() {
-      // Uint8List を一時ファイルに保存
-      final tempDir = Directory.systemTemp;
-      final updatedImage = File('${tempDir.path}/upscaled_image.png');
-      updatedImage.writeAsBytesSync(upscaledImage);
-
-      // 表示する画像を更新
-      _displayedImage = updatedImage;
-    });
+    _displayedImage = File(widget.imagePath);
   }
 
   @override
   void dispose() {
     _textController.dispose();
-    // _noteController.dispose();
     super.dispose();
   }
 
+  void _updateImage(Uint8List upscaledImage) {
+    setState(() {
+      final tempDir = Directory.systemTemp;
+      final updatedImage = File('${tempDir.path}/upscaled_image.png');
+      updatedImage.writeAsBytesSync(upscaledImage);
+      _displayedImage = updatedImage;
+    });
+  }
+
   Future<void> _saveMemo() async {
-    // "未入力"のままだったらnullにしておくか、文字列のまま保存するかはお好みで
     final updatedText =
         _textController.text == "未入力" ? null : _textController.text;
+
     final updatedMemo = Memo(
       id: widget.memo.id,
       title: widget.memo.title,
@@ -65,9 +57,21 @@ class _PhotoDetailScreenState extends State<PhotoDetailScreen> {
       folderId: widget.memo.folderId,
       textContent: updatedText,
     );
+
     await _memoDao.updateMemo(updatedMemo);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('メモを更新しました')),
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('保存完了'),
+        content: Text('メモを保存しました'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: Text('OK'),
+          ),
+        ],
+      ),
     );
   }
 
@@ -76,6 +80,9 @@ class _PhotoDetailScreenState extends State<PhotoDetailScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text('Photo Detail'),
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black,
+        elevation: 1,
         actions: [
           IconButton(
             icon: Icon(Icons.save),
@@ -83,59 +90,74 @@ class _PhotoDetailScreenState extends State<PhotoDetailScreen> {
           ),
         ],
       ),
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          return SingleChildScrollView(
-            child: ConstrainedBox(
-              constraints: BoxConstraints(
-                minHeight: constraints.maxHeight,
-              ),
-              child: IntrinsicHeight(
-                child: Column(
-                  children: [
-                    // 現在の画像を表示
-                    Expanded(
-                      flex: 3,
-                      child: InteractiveViewer(
-                        child: Image.file(_displayedImage),
-                      ),
-                    ),
-                    // メモ枠
-                    Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: TextField(
-                        controller: _textController,
-                        maxLines: null,
-                        decoration: InputDecoration(
-                          border: OutlineInputBorder(),
-                          hintText: 'メモを入力してください',
-                        ),
-                      ),
-                    ),
-                    // 超解像ボタン
-                    Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 16.0),
-                      child: ElevatedButton(
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => SuperResolutionScreen(
-                                originalImage: _displayedImage,
-                                onSave: _updateImage, // 保存時の処理を渡す
-                              ),
-                            ),
-                          );
-                        },
-                        child: Text('超解像'),
-                      ),
-                    ),
-                  ],
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            // ズーム可能な画像
+            // 👇この部分を置き換える
+            SizedBox(
+              width: double.infinity,
+              child: InteractiveViewer(
+                panEnabled: true,
+                boundaryMargin: EdgeInsets.all(100),
+                minScale: 1.0,
+                maxScale: 5.0,
+                child: Image.file(
+                  _displayedImage,
+                  width: MediaQuery.of(context).size.width,
+                  fit: BoxFit.contain,
                 ),
               ),
             ),
-          );
-        },
+            const SizedBox(height: 24),
+            // メモ入力欄（下に配置）
+            TextField(
+              controller: _textController,
+              maxLines: null,
+              decoration: InputDecoration(
+                labelText: 'メモを編集',
+                filled: true,
+                fillColor: Colors.grey[100],
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+                contentPadding: EdgeInsets.all(16),
+              ),
+            ),
+
+            const SizedBox(height: 24),
+
+            // 超解像ボタン
+            ElevatedButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => SuperResolutionScreen(
+                      originalImage: _displayedImage,
+                      onSave: _updateImage,
+                    ),
+                  ),
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Theme.of(context).primaryColor,
+                foregroundColor: Colors.white,
+                elevation: 3,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                padding: EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+              ),
+              child: Text(
+                '超解像',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
