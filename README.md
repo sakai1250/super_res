@@ -1,8 +1,8 @@
 # 超kAI蔵(iOS)
-<img width="100"  alt="Simulator Screenshot - iPhone 16 - 2025-08-30 at 13 21 35" src="https://github.com/user-attachments/assets/bdddfa52-c4ca-4f36-b575-30e19f80a754" />
-<img width="100" alt="Simulator Screenshot - iPhone 16 - 2025-08-30 at 13 24 48" src="https://github.com/user-attachments/assets/a41e60fe-0421-432f-b9f5-40189bc8f19e" />
-<img width="100" alt="Simulator Screenshot - iPhone 16 - 2025-08-30 at 13 21 59" src="https://github.com/user-attachments/assets/630df8ff-8eb0-4d7b-877f-5589f48028ec" />
-<img width="100" alt="Simulator Screenshot - iPhone 16 - 2025-08-30 at 13 22 52" src="https://github.com/user-attachments/assets/6cb9e529-6837-4709-aab8-6b02e766eaa7" />
+
+<img width="100" alt="Simulator Screenshot - iPhone 16 Pro Max - 2025-08-30 at 14 32 02" src="https://github.com/user-attachments/assets/be44874f-37d8-4a24-b6ca-3527676a7fd1" />
+<img width="100" alt="Simulator Screenshot - iPhone 16 Pro Max - 2025-08-30 at 14 31 49" src="https://github.com/user-attachments/assets/10c5e907-01a1-4d76-942b-85d8bda8fbd0" />
+<img width="100" alt="Simulator Screenshot - iPhone 16 Pro Max - 2025-08-30 at 14 31 45" src="https://github.com/user-attachments/assets/8bd0abe2-e6ff-447f-a386-3f93bff5fe52" />
 
 
 ボケた写真、もうあきらめませんか？AIが最大4倍でくっきり高精細に！フォルダ分類・メモ保存・検索まで一気通貫！通信不要で安心です！
