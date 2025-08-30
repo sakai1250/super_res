@@ -16,9 +16,20 @@ class FolderDao {
         : [];
   }
 
+  Future<Folder?> getFolderById(int folderId) async {
+    final db = await DBProvider.instance.database;
+    final res = await db.query(
+      'Folder',
+      where: 'folderId = ?',
+      whereArgs: [folderId],
+      limit: 1,
+    );
+    if (res.isEmpty) return null;
+    return Folder.fromMap(res.first);
+  }
+
   Future<int> deleteFolder(int folderId) async {
     final db = await DBProvider.instance.database;
     return await db.delete('Folder', where: 'folderId = ?', whereArgs: [folderId]);
   }
 }
-

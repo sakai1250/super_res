@@ -79,7 +79,7 @@ class _PhotoDetailScreenState extends State<PhotoDetailScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Photo Detail'),
+        title: Text('写真詳細'),
         backgroundColor: Colors.white,
         foregroundColor: Colors.black,
         elevation: 1,
@@ -100,13 +100,22 @@ class _PhotoDetailScreenState extends State<PhotoDetailScreen> {
               width: double.infinity,
               child: InteractiveViewer(
                 panEnabled: true,
-                boundaryMargin: EdgeInsets.all(100),
+                boundaryMargin: const EdgeInsets.all(100),
                 minScale: 1.0,
                 maxScale: 5.0,
                 child: Image.file(
                   _displayedImage,
                   width: MediaQuery.of(context).size.width,
                   fit: BoxFit.contain,
+                  frameBuilder: (context, child, frame, wasSync) {
+                    if (wasSync) return child;
+                    return AnimatedOpacity(
+                      opacity: frame == null ? 0 : 1,
+                      duration: const Duration(milliseconds: 300),
+                      curve: Curves.easeInOut,
+                      child: child,
+                    );
+                  },
                 ),
               ),
             ),

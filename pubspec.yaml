@@ -1,5 +1,5 @@
 name: super_res
-description: "A new Flutter project."
+description: "ぼやけた写真をくっきり高精細化（超解像）。端末内処理で安心、フォルダ分けとメモでスマートに管理。カメラ/ギャラリー対応。"
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
@@ -35,10 +35,14 @@ dependencies:
   image_picker: ^0.8.7
   flutter_super_resolution: ^1.0.5 # 超解像ライブラリ
   image: ^4.0.17 # Imageライブラリ（補間処理用）
+  shimmer: ^3.0.0
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
+
+  flutter_launcher_icons: ^0.13.1
+
 
 dev_dependencies:
   flutter_test:
@@ -67,10 +71,19 @@ flutter:
   #   - images/a_dot_burr.jpeg
   #   - images/a_dot_ham.jpeg
   assets:
-    - assets/rt4ksr_x2.onnx
+    # - assets/rt4ksr_x2.onnx
     # - assets/RRDB_ESRGAN_x4.onnx
     - assets/IMDN.onnx
 
+flutter_icons: 
+  image_path_android: assets/launcher_icon/icon_superres.png
+  adaptive_icon_background: '#000000' #iconの背景色
+  adaptive_icon_foreground: assets/launcher_icon/icon_superres.png
+  image_path_ios: assets/launcher_icon/icon_superres.png
+  android: true
+  adaptive_icon_padding: true
+  min_sdk_android: 30 #Androidの最小SDKバージョン
+  ios: true   
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

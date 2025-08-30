@@ -16,8 +16,8 @@ class HomeScreen extends StatefulWidget {
   _HomeScreenState createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateMixin {
-  late TabController _tabController;
+class _HomeScreenState extends State<HomeScreen> {
+  int _currentIndex = 0;
   final MemoDao _memoDao = MemoDao();
   final FolderDao _folderDao = FolderDao();
   List<Folder> _folderList = [];
@@ -25,7 +25,6 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
     _loadFolders();
   }
 
@@ -183,40 +182,27 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('My App'),
-        bottom: TabBar(
-          controller: _tabController,
-          tabs: [
-            Tab(text: 'Memo'),
-            Tab(text: 'Folder'),
-          ],
-        ),
-        actions: [
-          PopupMenuButton<String>(
-            icon: Icon(Icons.add),
-            onSelected: (value) async {
-              if (value == 'gallery') await _pickFromGallery();
-              else if (value == 'camera') await _onCameraPressed();
-            },
-            itemBuilder: (context) => [
-              PopupMenuItem(value: 'gallery', child: Text('フォルダから選択')),
-              PopupMenuItem(value: 'camera', child: Text('写真を撮影')),
-            ],
-          ),
-        ],
-      ),
-      body: TabBarView(
-        controller: _tabController,
+      body: IndexedStack(
+        index: _currentIndex,
         children: [
           MemoListScreen(),
-          FolderListScreen(folderList: _folderList), // ← これが超重要！
+          FolderListScreen(folderList: _folderList),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        child: Icon(Icons.create_new_folder),
-        onPressed: _onFolderAction,
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _currentIndex,
+        onTap: (i) => setState(() => _currentIndex = i),
+        items: const [
+          BottomNavigationBarItem(icon: Icon(Icons.edit_note), label: 'メモ'),
+          BottomNavigationBarItem(icon: Icon(Icons.folder_open), label: 'フォルダ'),
+        ],
       ),
+      floatingActionButton: _currentIndex == 1
+          ? FloatingActionButton(
+              onPressed: _onFolderAction,
+              child: const Icon(Icons.create_new_folder),
+            )
+          : null,
     );
   }
 }

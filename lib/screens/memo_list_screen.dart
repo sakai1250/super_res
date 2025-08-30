@@ -5,11 +5,12 @@ import '../data/memo.dart';
 import '../data/folder_dao.dart';
 import '../data/db_provider.dart';
 import '../screens/photo_detail_screen.dart';
-
+import '../widgets/fading_image.dart';
+import '../widgets/shimmer_skeleton.dart';
 import 'package:image_picker/image_picker.dart';
-import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
+import 'dart:io';
 
 class MemoListScreen extends StatefulWidget {
   @override
@@ -20,6 +21,7 @@ class _MemoListScreenState extends State<MemoListScreen> {
   final MemoDao _memoDao = MemoDao();
   List<Memo> _memoList = [];
   String _searchQuery = "";
+  bool _loading = true;
 
   @override
   void initState() {
@@ -28,9 +30,12 @@ class _MemoListScreenState extends State<MemoListScreen> {
   }
 
   Future<void> _loadMemos() async {
+    setState(() => _loading = true);
     final memos = await _memoDao.searchMemos(_searchQuery);
+    if (!mounted) return;
     setState(() {
       _memoList = memos;
+      _loading = false;
     });
   }
   void _onSearchChanged(String value) {
@@ -42,78 +47,205 @@ class _MemoListScreenState extends State<MemoListScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Memo List'),
-        bottom: PreferredSize(
-          preferredSize: Size(double.infinity, 48),
-          child: Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: TextField(
-              onChanged: _onSearchChanged,
-              decoration: InputDecoration(
-                hintText: 'Search text',
-                prefixIcon: Icon(Icons.search),
-                border: OutlineInputBorder(),
+      body: RefreshIndicator.adaptive(
+        onRefresh: _loadMemos,
+        child: CustomScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          slivers: [
+            SliverAppBar.large(
+              title: const Text('メモ一覧'),
+              floating: false,
+              pinned: true,
+              actions: [
+                IconButton(
+                  tooltip: 'ギャラリーから追加',
+                  icon: const Icon(Icons.photo_library_outlined),
+                  onPressed: _importFromGallery,
+                ),
+                IconButton(
+                  tooltip: '写真を撮影',
+                  icon: const Icon(Icons.camera_alt_outlined),
+                  onPressed: _importFromCamera,
+                ),
+              ],
+            ),
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                child: TextField(
+                  onChanged: _onSearchChanged,
+                  decoration: const InputDecoration(
+                    hintText: 'Search text',
+                    prefixIcon: Icon(Icons.search),
+                  ),
+                ),
               ),
             ),
-          ),
-        ),
-      ),
-      body: ListView.builder(
-        itemCount: _memoList.length,
-        itemBuilder: (context, index) {
-          final memo = _memoList[index];
-          return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            child: Card(
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-              elevation: 4,
-              child: ListTile(
-                contentPadding: EdgeInsets.all(12),
-                leading: memo.imagePath != null
-                    ? GestureDetector(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => PhotoDetailScreen(
-                                imagePath: memo.imagePath!,
-                                memo: memo,
-                              ),
-                            ),
-                          );
-                        },
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
-                          child: Image.file(
-                            File(memo.imagePath!),
-                            width: 64,
-                            height: 64,
-                            fit: BoxFit.cover,
+            if (_loading)
+              SliverList(
+                delegate: SliverChildBuilderDelegate(
+                  (context, index) => const ShimmerListTile(),
+                  childCount: 6,
+                ),
+              )
+            else
+              SliverList(
+                delegate: SliverChildBuilderDelegate(
+                  (context, index) {
+                    final memo = _memoList[index];
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      child: Card(
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        elevation: 1,
+                        child: ListTile(
+                          contentPadding: const EdgeInsets.all(12),
+                          leading: memo.imagePath != null
+                              ? GestureDetector(
+                                  onTap: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) => PhotoDetailScreen(
+                                          imagePath: memo.imagePath!,
+                                          memo: memo,
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                  child: ClipRRect(
+                                    borderRadius: BorderRadius.circular(8),
+                                    child: FadingImageFile(
+                                      file: File(memo.imagePath!),
+                                      width: 64,
+                                      height: 64,
+                                    ),
+                                  ),
+                                )
+                              : const Icon(Icons.image_not_supported, size: 48),
+                          title: Text(
+                            memo.title,
+                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
                           ),
+                          subtitle: Text(
+                            memo.textContent ?? '（メモなし）',
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          trailing: const Icon(Icons.chevron_right),
                         ),
-                      )
-                    : Icon(Icons.image_not_supported, size: 48),
-                title: Text(
-                  memo.title,
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-                ),
-                subtitle: Text(
-                  memo.textContent ?? '（メモなし）',
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
+                      ),
+                    );
+                  },
+                  childCount: _memoList.length,
                 ),
               ),
-            ),
-          );
-        },
+          ],
+        ),
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _onCameraPressed,
-        child: Icon(Icons.camera_alt),
-        backgroundColor: Colors.blue,
+        child: const Icon(Icons.camera_alt),
       ),
     );
+  }
+
+  Future<void> _importFromGallery() async {
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+    if (pickedFile == null) return;
+    final folderId = await _selectFolder();
+    if (folderId == null) return;
+    final appDir = await getApplicationDocumentsDirectory();
+    final fileName = p.basename(pickedFile.path);
+    final savedImage = await File(pickedFile.path).copy('${appDir.path}/$fileName');
+    final newMemo = Memo(
+      title: "Gallery Memo",
+      imagePath: savedImage.path,
+      createdAt: DateTime.now().toString(),
+      folderId: folderId,
+    );
+    await _memoDao.insertMemo(newMemo);
+    await _loadMemos();
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('ギャラリーから追加しました')),
+    );
+  }
+
+  Future<void> _importFromCamera() async {
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(source: ImageSource.camera);
+    if (pickedFile == null) return;
+    final folderId = await _selectFolder();
+    if (folderId == null) return;
+    final appDir = await getApplicationDocumentsDirectory();
+    final fileName = p.basename(pickedFile.path);
+    final savedImage = await File(pickedFile.path).copy('${appDir.path}/$fileName');
+    final newMemo = Memo(
+      title: "Camera Memo",
+      imagePath: savedImage.path,
+      createdAt: DateTime.now().toString(),
+      folderId: folderId,
+    );
+    await _memoDao.insertMemo(newMemo);
+    await _loadMemos();
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('写真を追加しました')),
+    );
+  }
+
+  Future<int?> _selectFolder() async {
+    final folderDao = FolderDao();
+    final allFolders = await folderDao.getAllFolders();
+    if (allFolders.isEmpty) {
+      if (!mounted) return null;
+      await showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('フォルダがありません'),
+          content: const Text('先にフォルダを作成してください。'),
+          actions: [
+            TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('OK')),
+          ],
+        ),
+      );
+      return null;
+    }
+    int? selectedFolderId;
+    if (!mounted) return null;
+    await showDialog(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          title: const Text('フォルダを選択'),
+          content: SingleChildScrollView(
+            child: Column(
+              children: allFolders.map((folder) {
+                return ListTile(
+                  title: Text(folder.folderName),
+                  onTap: () {
+                    selectedFolderId = folder.folderId;
+                    Navigator.of(ctx).pop();
+                  },
+                );
+              }).toList(),
+            ),
+          ),
+          actions: [
+            TextButton(
+              child: const Text('キャンセル'),
+              onPressed: () {
+                selectedFolderId = null;
+                Navigator.of(ctx).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
+    return selectedFolderId;
   }
 
   Future<void> _onCameraPressed() async {
@@ -169,7 +301,3 @@ class _MemoListScreenState extends State<MemoListScreen> {
     _loadMemos();
   }
 }
-
-
-
-

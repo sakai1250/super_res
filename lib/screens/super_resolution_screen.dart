@@ -343,7 +343,7 @@ class _SuperResolutionScreenState extends State<SuperResolutionScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Image Super-Resolution'),
+        title: Text('超解像'),
         actions: [
           if (_fullResImage != null)
             IconButton(
