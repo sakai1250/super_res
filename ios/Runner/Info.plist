@@ -27,11 +27,11 @@
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSCameraUsageDescription</key>
-	<string>アプリで写真を撮影するためにカメラを使用します</string>
+	<string>撮影した写真を超解像（高解像度化）やノイズ低減の処理に使用します。例：カメラで撮った写真を2倍に鮮明化して保存します（処理は端末内で実行）。</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
-	<string>アプリで写真を保存するためにフォトライブラリを使用します</string>
+	<string>アプリで生成した高解像度の画像をフォトライブラリに保存・書き出すために使用します。例：[保存] 操作で超解像後の画像をアルバムに追加します。</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>アプリで写真を選択・表示するためにフォトライブラリを使用します</string>
+	<string>フォトライブラリから写真を選択して超解像（高解像度化）やノイズ低減を行い、比較・保存できるようにするために使用します。例：アルバムの写真を2倍に高解像化して書き出します。</string>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 	<key>UILaunchStoryboardName</key>
