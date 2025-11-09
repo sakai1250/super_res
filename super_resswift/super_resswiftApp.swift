@@ -1,20 +1,12 @@
-//
-//  super_resswiftApp.swift
-//  super_resswift
-//
-//  Created by 坂井泰吾 on 2025/11/10.
-//
-
 import SwiftUI
 
+// 元Flutter: lib/main.dart -> MaterialApp(home: HomeScreen())
 @main
-struct super_resswiftApp: App {
-    let persistenceController = PersistenceController.shared
-
+struct SRAppSwiftApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
-                .environment(\.managedObjectContext, persistenceController.container.viewContext)
         }
     }
 }
+

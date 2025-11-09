@@ -1,0 +1,22 @@
+# Miscellaneous
+*.class
+*.log
+*.pyc
+*.swp
+.DS_Store
+.atom/
+.build/
+.buildlog/
+.history
+.svn/
+.swiftpm/
+migrate_working_dir/
+ML/RealESRGAN_x4.mlmodel
+Assets.xcassets/AppIcon.appiconset
+
+# IntelliJ related
+*.iml
+*.ipr
+*.iws
+.idea/
+
