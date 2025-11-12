@@ -306,14 +306,11 @@ struct PhotoDetailView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             if let ui = memo.image {
-                ScrollView([.vertical, .horizontal]) {
-                    Image(uiImage: ui)
-                        .resizable()
-                        .scaledToFit()
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 8)
-                }
-                .frame(maxWidth: .infinity, maxHeight: 300)
+                ZoomableImageView(image: ui)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 300)
+                    .clipped()
+                    .padding(.vertical, 8)
             }
 
             TextField("メモを編集", text: $text, axis: .vertical)

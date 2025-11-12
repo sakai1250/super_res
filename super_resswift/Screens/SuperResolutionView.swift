@@ -1,5 +1,6 @@
 import SwiftUI
 import PhotosUI
+import Photos
 
 // 元Flutter: lib/screens/super_resolution_screen.dart
 // - 進捗/エラー表示
@@ -15,8 +16,11 @@ struct SuperResolutionView: View {
     @State private var errorMessage = ""
     @State private var outputImage: UIImage?
     @State private var progressText = ""
+    @State private var progress: Double? = nil
     @State private var showSaveAlert = false
     @State private var saveMessage = ""
+    @State private var didAutoSave = false
+    @State private var originalImage: UIImage? = nil
 
     private let runner = SRRunner()
     private let tiler = SRTiler()
@@ -28,7 +32,7 @@ struct SuperResolutionView: View {
             VStack(spacing: 12) {
                 ImagePane(leftTitle: "Original Image",
                           rightTitle: "Upscaled Image",
-                          left: inputImage,
+                          left: originalImage ?? inputImage,
                           right: outputImage)
                     .frame(height: 420)
                     .padding(.horizontal)
@@ -65,24 +69,14 @@ struct SuperResolutionView: View {
                 Spacer()
             }
 
-            LoadingOverlay(running: running, message: progressText)
+            LoadingOverlay(running: running, message: progressText, progress: progress)
         }
         .navigationTitle("超解像")
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button {
                     guard let out = outputImage else { return }
-                    photoSaver.completion = { error in
-                        DispatchQueue.main.async {
-                            if let error {
-                                saveMessage = "保存に失敗しました: \(error.localizedDescription)"
-                            } else {
-                                saveMessage = "写真に保存しました"
-                            }
-                            showSaveAlert = true
-                        }
-                    }
-                    photoSaver.save(out)
+                    // 親（メモ）に適用のみ。保存は自動保存に任せる。
                     onSaveOutput(out)
                 } label: { Image(systemName: "square.and.arrow.down") }
                 .disabled(outputImage == nil)
@@ -93,19 +87,52 @@ struct SuperResolutionView: View {
         } message: {
             Text(saveMessage)
         }
+        .onAppear {
+            if originalImage == nil { originalImage = inputImage }
+        }
     }
 
     private func runInference() {
         guard let ui = inputImage, let cg = ImageIOUtil.cgImage(from: ui) else { return }
         running = true
-        errorMessage = ""; progressText = ""
+        errorMessage = ""
+        progressText = "準備中…"
+        progress = 0.05
         Task {
             do {
-                // 将来的にタイル経路に切替可能
-                let outCG = try await runner.upscale(cg)
+                // 画像が大きい場合はタイル推論
+                let useTile = max(cg.width, cg.height) > 1024 && modelAvailable
+                progressText = useTile ? "タイル推論中…" : "推論中…"
+                progress = useTile ? 0.4 : 0.6
+                let outCG: CGImage
+                if useTile {
+                    let cfg = TileConfig(tile: 256, overlap: 16, scale: 4)
+                    outCG = try await tiler.upscaleTiled(cg, cfg: cfg) { p in
+                        DispatchQueue.main.async { self.progress = 0.4 + 0.45 * p }
+                    }
+                } else {
+                    outCG = try await runner.upscale(cg)
+                }
                 // 元画像の向き・スケールを維持して生成
                 let outUI = UIImage(cgImage: outCG, scale: ui.scale, orientation: ui.imageOrientation)
-                await MainActor.run { self.outputImage = outUI }
+                await MainActor.run {
+                    self.progressText = "後処理…"
+                    self.progress = 0.9
+                    self.outputImage = outUI
+                    self.photoSaver.completion = { error in
+                        DispatchQueue.main.async {
+                            if let error {
+                                self.saveMessage = "保存に失敗しました: \(error.localizedDescription)"
+                            } else {
+                                self.saveMessage = "写真に保存しました"
+                                self.didAutoSave = true
+                            }
+                            self.showSaveAlert = true
+                        }
+                    }
+                    self.photoSaver.save(outUI)
+                    self.progress = 1.0
+                }
             } catch {
                 let msg: String
                 if let srErr = error as? SRRunnerError {
@@ -120,7 +147,10 @@ struct SuperResolutionView: View {
                 }
                 await MainActor.run { self.errorMessage = msg }
             }
-            await MainActor.run { self.running = false }
+            await MainActor.run {
+                self.running = false
+                self.progress = nil
+            }
         }
     }
 }
@@ -130,7 +160,28 @@ final class PhotoSaver: NSObject {
     var completion: ((Error?) -> Void)?
 
     func save(_ image: UIImage) {
-        UIImageWriteToSavedPhotosAlbum(image, self, #selector(didFinishSaving(_:didFinishSavingWithError:contextInfo:)), nil)
+        #if targetEnvironment(macCatalyst)
+        completion?(NSError(domain: "PhotoSaver", code: 1, userInfo: [NSLocalizedDescriptionKey: "macOSでは写真保存は未対応です"]))
+        return
+        #else
+        if #available(iOS 14, *) {
+            let status = PHPhotoLibrary.authorizationStatus(for: .addOnly)
+            switch status {
+            case .authorized, .limited:
+                UIImageWriteToSavedPhotosAlbum(image, self, #selector(didFinishSaving(_:didFinishSavingWithError:contextInfo:)), nil)
+            case .notDetermined:
+                PHPhotoLibrary.requestAuthorization(for: .addOnly) { _ in
+                    DispatchQueue.main.async {
+                        UIImageWriteToSavedPhotosAlbum(image, self, #selector(self.didFinishSaving(_:didFinishSavingWithError:contextInfo:)), nil)
+                    }
+                }
+            default:
+                self.completion?(NSError(domain: "PhotoSaver", code: 2, userInfo: [NSLocalizedDescriptionKey: "写真保存の許可がありません"]))
+            }
+        } else {
+            UIImageWriteToSavedPhotosAlbum(image, self, #selector(didFinishSaving(_:didFinishSavingWithError:contextInfo:)), nil)
+        }
+        #endif
     }
 
     @objc private func didFinishSaving(_ image: UIImage, didFinishSavingWithError error: Error?, contextInfo: UnsafeMutableRawPointer?) {

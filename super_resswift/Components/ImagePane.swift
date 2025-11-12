@@ -21,12 +21,8 @@ struct ImagePane: View {
             GeometryReader { geo in
                 ZStack {
                     if let img = image {
-                        ScrollView([.vertical, .horizontal]) {
-                            Image(uiImage: img)
-                                .resizable()
-                                .scaledToFit()
-                                .frame(maxWidth: geo.size.width)
-                        }
+                        ZoomableImageView(image: img)
+                            .frame(width: geo.size.width, height: geo.size.height)
                     } else {
                         Rectangle().fill(Color(uiColor: .systemGray5))
                     }

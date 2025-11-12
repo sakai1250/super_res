@@ -13,11 +13,17 @@ enum SRRunnerError: Error { case modelNotFound, conversionFailed }
 
 final class SRRunner {
     private var model: MLModel?
+    private static var cachedModel: MLModel?
     var hasModel: Bool { model != nil }
 
     init() {
         // バンドルから .mlmodelc / .mlmodel を探索してロード
-        self.model = try? SRRunner.loadCompiledModel()
+        if let m = Self.cachedModel {
+            self.model = m
+        } else if let m = try? SRRunner.loadCompiledModel() {
+            Self.cachedModel = m
+            self.model = m
+        }
     }
 
     static func loadCompiledModel() throws -> MLModel {
